@@ -9,43 +9,54 @@ object WindowFunctions {
     val spark = SparkSession.builder.appName("StructuredNetworkWordCount").master("local[*]").getOrCreate()
     import spark.implicits._
 
-    val empsalary = Seq(
-      Salary("sales", 1, 5000),
-      Salary("personnel", 2, 3900),
-      Salary("sales", 3, 4800),
-      Salary("sales", 4, 4800),
-      Salary("personnel", 5, 3500),
-      Salary("develop", 7, 4200),
-      Salary("develop", 8, 6000),
-      Salary("develop", 9, 4500),
-      Salary("develop", 10, 5200),
-      Salary("develop", 11, 5200)).toDS
+    val emp = List(("E101","name1",9000),
+      ("E102","name2",9900),
+      ("E103","name3",8000),
+      ("E104","name4",9100),
+      ("E105","name5",9200),
+      ("E106","name6",9300),
+      ("E107","name7",9400),
+      ("E108","name8",9500),
+      ("E109","name9",9000),
+      ("E110","name10",9000)).toDF("empId","empName","sal")
+    val dep = List(("D101","HR","E101"),
+      ("D101","HR","E102"),
+      ("D102","Admin","E103"),
+      ("D102","Admin","E104"),
+      ("D102","Admin","E105"),
+      ("D103","IT","E106"),
+      ("D103","IT","E107"),
+      ("D103","IT","E108"),
+      ("D101","HR","E109"),
+      ("D101","HR","E1010")).toDF("depId","depName","empId")
 
-    val byDepName = Window.partitionBy('depName)
-    empsalary.withColumn("avg", avg('salary) over byDepName).show
+    val analyticWindow = Window.partitionBy("depName").orderBy("sal")
+    val secondAnalyticWindow = Window.partitionBy("depName").orderBy('sal asc)
+    val aggregateWindow = Window.partitionBy("depName")
 
+    //window aggregate function
+    val maxSalaryByDep = emp.as("emp").join(dep.as("dep"), $"emp.empId" === $"dep.empId").withColumn("maxSal", max("sal").over(aggregateWindow)).select('depName, 'maxSal, $"emp.*")
+    val minSalaryByDep = emp.as("emp").join(dep.as("dep"), $"emp.empId" === $"dep.empId").withColumn("minSal", min("sal").over(aggregateWindow)).select('depName, 'minSal, $"emp.*")
+    val avgSalaryByDep = emp.as("emp").join(dep.as("dep"), $"emp.empId" === $"dep.empId").withColumn("avgSal", avg("sal").over(aggregateWindow)).select('depName, 'avgSal, $"emp.*")
+    val countEmployeeByDep = emp.as("emp").join(dep.as("dep"), $"emp.empId" === $"dep.empId").withColumn("numberOfEmp", count("sal").over(aggregateWindow)).select('depName, 'numberOfEmp, $"emp.*")
+    val sumSalaryByDep = emp.as("emp").join(dep.as("dep"), $"emp.empId" === $"dep.empId").withColumn("sumSal", sum("sal").over(aggregateWindow)).select('depName, 'sumSal, $"emp.*")
 
-    val dataset = Seq(
-      ("Thin",       "cell phone", 6000),
-      ("Normal",     "tablet",     1500),
-      ("Mini",       "tablet",     5500),
-      ("Ultra thin", "cell phone", 5000),
-      ("Very thin",  "cell phone", 6000),
-      ("Big",        "tablet",     2500),
-      ("Bendable",   "cell phone", 3000),
-      ("Foldable",   "cell phone", 3000),
-      ("Pro",        "tablet",     4500),
-      ("Pro2",       "tablet",     6500))
-      .toDF("product", "category", "revenue")
+    //window ranking function
+    val rankSalaryByDep = emp.as("emp").join(dep.as("dep"), $"emp.empId" === $"dep.empId").withColumn("rank", rank.over(analyticWindow)).select('depName, 'rank, $"emp.*")
+    val denseRankSalaryByDep = emp.as("emp").join(dep.as("dep"), $"emp.empId" === $"dep.empId").withColumn("denseRank", dense_rank().over(analyticWindow)).select('depName, 'denseRank, $"emp.*")
+    val rowNumberSalaryByDep = emp.as("emp").join(dep.as("dep"), $"emp.empId" === $"dep.empId").withColumn("rowNumber", row_number().over(analyticWindow)).select('depName, 'rowNumber, $"emp.*")
+    val ntileEmployeeByDep = emp.as("emp").join(dep.as("dep"), $"emp.empId" === $"dep.empId").withColumn("ntile", ntile(2).over(analyticWindow)).select('depName, 'ntile, $"emp.*")
+    val percentRankalaryByDep = emp.as("emp").join(dep.as("dep"), $"emp.empId" === $"dep.empId").withColumn("percentRank", percent_rank().over(analyticWindow)).select('depName, 'percentRank, $"emp.*")
 
-    val overCategory = Window.partitionBy('category).orderBy('revenue.desc)
-    val data = dataset
-    val ranked = data.withColumn("rank", dense_rank.over(overCategory))
-    val reveDesc = Window.partitionBy('category).orderBy('revenue.desc)
-    val reveDiff = max('revenue).over(reveDesc) - 'revenue
-    data.select('*, reveDiff as 'revenue_diff).show(false)
-    //ranked.show(false)
-    //ranked.where('rank <= 2).show(false)
+    //window analytic Function
+    val cumeDistSalaryByDep = emp.as("emp").join(dep.as("dep"), $"emp.empId" === $"dep.empId").withColumn("cumDist", cume_dist().over(analyticWindow)).select('depName, 'cumDist, $"emp.*")
+    val leadSalaryByDep = emp.as("emp").join(dep.as("dep"), $"emp.empId" === $"dep.empId").withColumn("lag", lag('sal, 1).over(analyticWindow)).select('depName, 'lag, $"emp.*")
+    val lagSalaryByDep = emp.as("emp").join(dep.as("dep"), $"emp.empId" === $"dep.empId").withColumn("lead", lead('sal, 2).over(analyticWindow)).select('depName, 'lead, $"emp.*")
+
+    //secondHighest Sal
+    val secondMaxSalaryByDep = emp.as("emp").join(dep.as("dep"), $"emp.empId" === $"dep.empId").withColumn("rank", rank.over(analyticWindow)).filter('rank === 2).select('depName, 'rank, $"emp.*")
+    val secondMinSalaryByDep = emp.as("emp").join(dep.as("dep"), $"emp.empId" === $"dep.empId").withColumn("rank", rank.over(secondAnalyticWindow)).filter('rank === 2).select('depName, 'rank, $"emp.*")
+
   }
 }
 case class Salary(depName: String, empNo: Long, salary: Long)
