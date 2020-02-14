@@ -57,6 +57,25 @@ object WindowFunctions {
     val secondMaxSalaryByDep = emp.as("emp").join(dep.as("dep"), $"emp.empId" === $"dep.empId").withColumn("rank", rank.over(analyticWindow)).filter('rank === 2).select('depName, 'rank, $"emp.*")
     val secondMinSalaryByDep = emp.as("emp").join(dep.as("dep"), $"emp.empId" === $"dep.empId").withColumn("rank", rank.over(secondAnalyticWindow)).filter('rank === 2).select('depName, 'rank, $"emp.*")
 
+    //Top two most popular show saved in a dataset
+    val data = Seq(("NetFlix","IND","GOT","V001"), ("NetFlix","IND","FRIENDS","V001"), ("NetFlix","IND","BBT","V001"), ("NetFlix","IND","FRIENDS","V002"), ("NetFlix","IND","FRIENDS","V003"), ("NetFlix","IND","FRIENDS","V005"), ("NetFlix","IND","GOT","V002"), ("NetFlix","IND","GOT","V003"), ("NetFlix","IND","GOT","V004"), ("NetFlix","IND","GOT","V005"), ("NetFlix","USA","GOT","USV001"), ("NetFlix","USA","FRIENDS","USV001"), ("NetFlix","USA","BBT","USV001"), ("NetFlix","USA","FRIENDS","USV002"), ("NetFlix","USA","FRIENDS","USV003"), ("NetFlix","USA","FRIENDS","USV005"), ("NetFlix","USA","FRIENDS","USV006"), ("NetFlix","USA","FRIENDS","USV007"), ("NetFlix","USA","FRIENDS","USV008"), ("NetFlix","USA","GOT","USV005"), ("NetFlix","UK","GOT","UKV001"), ("NetFlix","UK","FRIENDS","UKV001"), ("NetFlix","UK","BBT","UKV001"), ("NetFlix","UK","FRIENDS","UKV002"), ("NetFlix","UK","FRIENDS","UKV003"), ("NetFlix","UK","FRIENDS","UKV005"), ("NetFlix","UK","BBT","UKV002"), ("NetFlix","UK","BBT","UKV003"), ("NetFlix","UK","BBT","UKV004"), ("NetFlix","UK","BBT","UKV005"))
+    val TVShowDF = data.toDF("serviceProvider","country","show","viewer")
+    val top2PopularShowWindow = Window.partitionBy('country, 'show)
+    val popularShowDF = TVShowDF.withColumn("numberOfViewer", count('viewer).over(top2PopularShowWindow)).withColumn("DR", dense_rank().over(Window.partitionBy('country).orderBy('numberOfViewer.desc))).filter('DR <= 2)
+    popularShowDF.select("serviceProvider","country","show","numberOfViewer","DR").distinct().show(false)
+    /*
+    +---------------+-------+-------+--------------+---+
+    |serviceProvider|country|show   |numberOfViewer|DR |
+    +---------------+-------+-------+--------------+---+
+    |NetFlix        |USA    |FRIENDS|7             |1  |
+    |NetFlix        |USA    |GOT    |2             |2  |
+    |NetFlix        |UK     |BBT    |5             |1  |
+    |NetFlix        |UK     |FRIENDS|4             |2  |
+    |NetFlix        |IND    |GOT    |5             |1  |
+    |NetFlix        |IND    |FRIENDS|4             |2  |
+    +---------------+-------+-------+--------------+---+
+     */
+
   }
 }
 case class Salary(depName: String, empNo: Long, salary: Long)
