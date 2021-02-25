@@ -8,7 +8,7 @@ import scala.collection.mutable
 /**
   * Created by abhin on 3/22/2018.
   */
-@ExpressionDescription(
+/*@ExpressionDescription(
   usage = "_FUNC_(expr) - Collects and returns a list of non-unique elements.")
 case class CollectList(
                         child: Expression,
@@ -26,4 +26,9 @@ case class CollectList(
   override def prettyName: String = "collect_list"
 
   override protected[this] val buffer: mutable.ArrayBuffer[Any] = mutable.ArrayBuffer.empty
-}
+}*/
+
+case class CollectList(
+                        child: Expression,
+                        mutableAggBufferOffset: Int = 0,
+                        inputAggBufferOffset: Int = 0)

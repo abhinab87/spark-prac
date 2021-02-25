@@ -1,5 +1,7 @@
 package com.abhinab.sparkcore
 
+import com.abhinab.models.Student
+
 /**
  * Hello world!
  *

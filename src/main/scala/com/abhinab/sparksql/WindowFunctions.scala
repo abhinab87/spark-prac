@@ -5,30 +5,33 @@ import org.apache.spark.sql.functions._
 import org.apache.spark.sql.expressions.Window
 
 object WindowFunctions {
+
+  val emps = List(("E101","name1",9000),
+    ("E102","name2",9900),
+    ("E103","name3",8000),
+    ("E104","name4",9100),
+    ("E105","name5",9200),
+    ("E106","name6",9300),
+    ("E107","name7",9400),
+    ("E108","name8",9500),
+    ("E109","name9",9000),
+    ("E110","name10",9000))//.toDF("empId","empName","sal")
+  val deps = List(("D101","HR","E101"),
+    ("D101","HR","E102"),
+    ("D102","Admin","E103"),
+    ("D102","Admin","E104"),
+    ("D102","Admin","E105"),
+    ("D103","IT","E106"),
+    ("D103","IT","E107"),
+    ("D103","IT","E108"),
+    ("D101","HR","E109"),
+    ("D101","HR","E1010"))//.toDF("depId","depName","empId")
   def main(args: Array[String]): Unit = {
     val spark = SparkSession.builder.appName("StructuredNetworkWordCount").master("local[*]").getOrCreate()
     import spark.implicits._
 
-    val emp = List(("E101","name1",9000),
-      ("E102","name2",9900),
-      ("E103","name3",8000),
-      ("E104","name4",9100),
-      ("E105","name5",9200),
-      ("E106","name6",9300),
-      ("E107","name7",9400),
-      ("E108","name8",9500),
-      ("E109","name9",9000),
-      ("E110","name10",9000)).toDF("empId","empName","sal")
-    val dep = List(("D101","HR","E101"),
-      ("D101","HR","E102"),
-      ("D102","Admin","E103"),
-      ("D102","Admin","E104"),
-      ("D102","Admin","E105"),
-      ("D103","IT","E106"),
-      ("D103","IT","E107"),
-      ("D103","IT","E108"),
-      ("D101","HR","E109"),
-      ("D101","HR","E1010")).toDF("depId","depName","empId")
+    val emp = emps.toDF("empId","empName","sal")
+    val dep = deps.toDF("depId","depName","empId")
 
     val analyticWindow = Window.partitionBy("depName").orderBy("sal")
     val secondAnalyticWindow = Window.partitionBy("depName").orderBy('sal asc)
@@ -63,6 +66,8 @@ object WindowFunctions {
     val top2PopularShowWindow = Window.partitionBy('country, 'show)
     val popularShowDF = TVShowDF.withColumn("numberOfViewer", count('viewer).over(top2PopularShowWindow)).withColumn("DR", dense_rank().over(Window.partitionBy('country).orderBy('numberOfViewer.desc))).filter('DR <= 2)
     popularShowDF.select("serviceProvider","country","show","numberOfViewer","DR").distinct().show(false)
+    println(popularShowDF.rdd.toDebugString)
+
     /*
     +---------------+-------+-------+--------------+---+
     |serviceProvider|country|show   |numberOfViewer|DR |
