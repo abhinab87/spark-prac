@@ -34,7 +34,7 @@ object App2 {
     println("***CONCATENATING QUERY AND SUFFIX***")
     state = state.withColumn("query",concat(col("query"),lit(" "),col("suffix"))).repartition(5)
 
-    //state.show(false)
+    state.show(false)
     //state = state.withColumn("query", withReplacements(col("query"), abbSeq)).repartition(5)
     //state.show(10)
 
